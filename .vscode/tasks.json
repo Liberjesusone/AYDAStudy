@@ -1,0 +1,18 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build-current",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}/build-current.ps1",
+        "${file}", "${fileBasenameNoExtension}", "${fileExtname}"
+      ],
+      "group": { "kind": "build", "isDefault": true },
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": ["$rustc", "$gcc"]
+    }
+  ]
+}

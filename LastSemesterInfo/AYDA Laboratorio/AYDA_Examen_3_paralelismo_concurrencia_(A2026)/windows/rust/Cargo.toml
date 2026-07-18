@@ -1,0 +1,8 @@
+[package]
+name = "exam_3"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "template"
+path = "template.rs"

@@ -1,3 +1,19 @@
 {
-    "C_Cpp.errorSquiggles": "enabled"
+    "C_Cpp.errorSquiggles": "enabled",
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "clangd.path": "C:\\msys64\\mingw64\\bin\\clangd.exe",
+    "cmake.generator": "Ninja",
+    "cmake.configureOnOpen": true,
+    "cmake.configureArgs": ["-DCMAKE_BUILD_TYPE=Debug"],
+
+    // Error Lens: NO mostrar los mensajes en linea dentro de archivos .md
+    "errorLens.excludePatterns": ["**/*.{md}"],
+
+    // rust-analyzer: says which especifically is the Cargo project (the root one) 
+    "rust-analyzer.linkedProjects": ["./Cargo.toml"],
+    // Avoids the rust-analyzer from "guessing" individual files: uses only the Cargo.toml.
+    "rust-analyzer.cargo.allTargets": true,
+    "rust-analyzer.lens.enable": true,
+    "rust-analyzer.lens.run.enable": true,
+    "rust-analyzer.lens.debug.enable": true
 }

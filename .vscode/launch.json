@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug Rust/C++",
+        "type": "lldb",
+        "sourceLanguages": ["rust", "c++"],
+        "displayFormat": "auto",
+        "sourceMap": {},
+        "request": "launch",
+        "program": "${workspaceFolder}/.run/current.exe",
+        "args": [],
+        "cwd": "${workspaceFolder}",
+        "preLaunchTask": "build-current",
+        "stopOnEntry": false,
+        "console": "integratedTerminal"
+      }
+    ]
+  }
