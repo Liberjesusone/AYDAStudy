@@ -4,16 +4,22 @@
     "clangd.path": "C:\\msys64\\mingw64\\bin\\clangd.exe",
     "cmake.generator": "Ninja",
     "cmake.configureOnOpen": true,
-    "cmake.configureArgs": ["-DCMAKE_BUILD_TYPE=Debug"],
+    "cmake.configureArgs": [
+      "-DCMAKE_BUILD_TYPE=Debug",
+      "-DCMAKE_CXX_COMPILER=C:/msys64/mingw64/bin/g++.exe"
+    ],
+    //"cmake.cxxCompilerPath": "C:/msys64/mingw64/bin/g++.exe",
+    //"cmake.cCompilerPath": "C:/msys64/mingw64/bin/gcc.exe",
 
-    // Error Lens: NO mostrar los mensajes en linea dentro de archivos .md
-    "errorLens.excludePatterns": ["**/*.{md}"],
+    "clangd.arguments": [
+    "--compile-commands-dir=build"
+    ],
+    
+    // Error Lens: Don't show inline error messages in .md files
+    "errorLens.excludePatterns": ["**/*.{md,rs}"],
 
     // rust-analyzer: says which especifically is the Cargo project (the root one) 
     "rust-analyzer.linkedProjects": ["./Cargo.toml"],
     // Avoids the rust-analyzer from "guessing" individual files: uses only the Cargo.toml.
-    "rust-analyzer.cargo.allTargets": true,
-    "rust-analyzer.lens.enable": true,
-    "rust-analyzer.lens.run.enable": true,
-    "rust-analyzer.lens.debug.enable": true
+    "rust-analyzer.cargo.allTargets": true
 }

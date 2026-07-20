@@ -1,19 +1,57 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-      {
-        "name": "Debug Rust/C++",
-        "type": "lldb",
-        "sourceLanguages": ["rust", "c++"],
-        "displayFormat": "auto",
-        "sourceMap": {},
-        "request": "launch",
-        "program": "${workspaceFolder}/.run/current.exe",
-        "args": [],
-        "cwd": "${workspaceFolder}",
-        "preLaunchTask": "build-current",
-        "stopOnEntry": false,
-        "console": "integratedTerminal"
-      }
-    ]
-  }
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug C++ (GDB)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/.run/current.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "MIMode": "gdb",
+      "miDebuggerPath": "C:/msys64/mingw64/bin/gdb.exe",
+      "setupCommands": [
+        { "text": "-enable-pretty-printing", "ignoreFailures": true }
+      ],
+      "preLaunchTask": "build-current"
+    },
+    {
+      "name": "Debug Rust (LLDB)",
+      "type": "lldb",
+      "sourceLanguages": ["rust"],
+      "request": "launch",
+      "program": "${workspaceFolder}/.run/current.exe",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "build-current",
+      "stopOnEntry": false,
+      "console": "integratedTerminal"
+    }
+  ]
+}
+
+
+// {
+//   "version": "0.2.0",
+//   "configurations": [
+//     {
+//       "name": "Run/Debug archivo actual (C++ o Rust)",
+//       "type": "cppdbg",
+//       "request": "launch",
+//       "program": "${workspaceFolder}/.run/current.exe",
+//       "args": [],
+//       "stopAtEntry": false,
+//       "cwd": "${workspaceFolder}",
+//       "console": "integratedTerminal",
+//       "MIMode": "gdb",
+//       "miDebuggerPath": "C:/msys64/mingw64/bin/gdb.exe",
+//       "setupCommands": [
+//         { "text": "-enable-pretty-printing", "ignoreFailures": true }
+//         { "text": "set print pretty on", "ignoreFailures": true }
+//       ],
+//       "preLaunchTask": "build-current"
+//     }
+//   ]
+// }
