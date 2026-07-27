@@ -15,6 +15,9 @@
     "--compile-commands-dir=build"
     ],
     
+    "[cpp]": {
+      "editor.stickyScroll.defaultModel": "outlineModel"
+    },
     // Error Lens: Don't show inline error messages in .md files
     "errorLens.excludePatterns": ["**/*.{md,rs}"],
 
