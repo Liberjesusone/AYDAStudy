@@ -45,7 +45,7 @@
       "using ull = unsigned long long;",
       "const ll MOD = 1e9 + 7;",
       "const ll MAXN = 2e5 + 7;",
-      "const ll oo = numeric_limits<ull>::max(); // 18 - 446 744 073 - 709 551 615 = 1.8*10^{18}",
+      "const ull oo = numeric_limits<ull>::max(); // 18 - 446 744 073 - 709 551 615 = 1.8*10^{18}",
       "",
       "int main()",
       "{",
