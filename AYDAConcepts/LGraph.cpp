@@ -22,7 +22,9 @@
 // #include <utility>
 
 #include "include/LGraph.hpp"
+#include "include/GraphViewer.hpp"
 #include <iostream>
+#include <string>
 #define endl '\n'
 using namespace std;
 
@@ -42,5 +44,7 @@ int main()
     cout << "DFS : "; my_graph.for_eachDFS(lambda); cout << endl;
     cout << "BFS : "; my_graph.for_eachBFS(lambda); cout << endl;
 
+    gviz::show(my_graph, [](const ull& value) { return to_string(value); });
+    
     return 0;
 }

@@ -1,0 +1,492 @@
+<title>Análisis Amortizado — Referencia Rápida</title>
+<style>
+  :root {
+    --ground:      #f4f7fc;
+    --surface:     #ffffff;
+    --surface-2:   #eaf0f9;
+    --ink:         #1a2438;
+    --ink-2:       #3d5068;
+    --muted:       #7a8fa8;
+    --border:      #cdd9ea;
+    --accent:      #2563de;
+    --accent-bg:   #deeafc;
+    --ok:          #0ea271;
+    --ok-bg:       #d0f4e8;
+    --formula-bg:  #1a2438;
+    --formula-ink: #e2ecf8;
+    --formula-hi:  #6ec9ff;
+    --formula-ok:  #4ee8b0;
+    --table-head:  #dde6f5;
+    --table-alt:   #f1f5fc;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:      #0d1726;
+      --surface:     #152034;
+      --surface-2:   #1c2d45;
+      --ink:         #dce8f5;
+      --ink-2:       #92aece;
+      --muted:       #5e7a9a;
+      --border:      #273d59;
+      --accent:      #5ba0ff;
+      --accent-bg:   #1a2f50;
+      --ok:          #2cd99b;
+      --ok-bg:       #0d3328;
+      --formula-bg:  #0a1421;
+      --formula-ink: #d0e8ff;
+      --formula-hi:  #7dd8ff;
+      --formula-ok:  #42eaaf;
+      --table-head:  #1c2d45;
+      --table-alt:   #172235;
+    }
+  }
+
+  :root[data-theme="light"] {
+    --ground:      #f4f7fc;
+    --surface:     #ffffff;
+    --surface-2:   #eaf0f9;
+    --ink:         #1a2438;
+    --ink-2:       #3d5068;
+    --muted:       #7a8fa8;
+    --border:      #cdd9ea;
+    --accent:      #2563de;
+    --accent-bg:   #deeafc;
+    --ok:          #0ea271;
+    --ok-bg:       #d0f4e8;
+    --formula-bg:  #1a2438;
+    --formula-ink: #e2ecf8;
+    --formula-hi:  #6ec9ff;
+    --formula-ok:  #4ee8b0;
+    --table-head:  #dde6f5;
+    --table-alt:   #f1f5fc;
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0d1726;
+    --surface:     #152034;
+    --surface-2:   #1c2d45;
+    --ink:         #dce8f5;
+    --ink-2:       #92aece;
+    --muted:       #5e7a9a;
+    --border:      #273d59;
+    --accent:      #5ba0ff;
+    --accent-bg:   #1a2f50;
+    --ok:          #2cd99b;
+    --ok-bg:       #0d3328;
+    --formula-bg:  #0a1421;
+    --formula-ink: #d0e8ff;
+    --formula-hi:  #7dd8ff;
+    --formula-ok:  #42eaaf;
+    --table-head:  #1c2d45;
+    --table-alt:   #172235;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  /* ── Header ── */
+  .header {
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 1.2rem;
+  }
+  .eyebrow {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.35rem;
+  }
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .subtitle {
+    margin-top: 0.4rem;
+    color: var(--ink-2);
+    font-size: 0.92rem;
+  }
+
+  /* ── Section ── */
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  h2 {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Idea box ── */
+  .idea {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 0.9rem 1.1rem;
+    color: var(--ink-2);
+    font-size: 0.92rem;
+  }
+  .idea strong { color: var(--ink); }
+
+  /* ── Formula block ── */
+  .formula {
+    background: var(--formula-bg);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.88rem;
+    line-height: 1.9;
+    color: var(--formula-ink);
+    overflow-x: auto;
+  }
+  .formula .hi  { color: var(--formula-hi);  font-weight: 600; }
+  .formula .ok  { color: var(--formula-ok);  font-weight: 700; }
+  .formula .dim { color: var(--muted); }
+
+  /* ── Methods grid ── */
+  .methods {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+  }
+  .method-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+  }
+  .method-card h3 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+  .method-card p { font-size: 0.88rem; color: var(--ink-2); }
+  .method-card code {
+    font-family: ui-monospace, monospace;
+    font-size: 0.82rem;
+    background: var(--surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+
+  /* ── Example cards ── */
+  .example {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .example-header {
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    padding: 0.7rem 1.1rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+  .example-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-bg);
+    padding: 0.2em 0.6em;
+    border-radius: 99px;
+  }
+  .example-header h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .example-body {
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  /* ── Result badge ── */
+  .result {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--ok-bg);
+    color: var(--ok);
+    font-family: ui-monospace, monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.4em 0.8em;
+    border-radius: 6px;
+    width: fit-content;
+  }
+
+  /* ── Tables ── */
+  .tbl-wrap { overflow-x: auto; border-radius: 6px; border: 1px solid var(--border); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+    font-variant-numeric: tabular-nums;
+  }
+  thead tr { background: var(--table-head); }
+  th {
+    padding: 0.55rem 0.85rem;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    text-align: center;
+    white-space: nowrap;
+  }
+  td {
+    padding: 0.48rem 0.85rem;
+    text-align: center;
+    color: var(--ink-2);
+    border-top: 1px solid var(--border);
+    font-family: ui-monospace, monospace;
+  }
+  td.label { font-family: inherit; text-align: left; color: var(--ink); font-weight: 500; }
+  tbody tr:nth-child(even) { background: var(--table-alt); }
+  .cell-ok { color: var(--ok); font-weight: 700; }
+  .cell-hi { color: var(--accent); }
+  .cell-neg { color: #e55a4e; }
+
+  /* ── Key insight ── */
+  .insight {
+    background: var(--ok-bg);
+    border: 1px solid var(--ok);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    font-size: 0.88rem;
+    color: var(--ink-2);
+  }
+  .insight strong { color: var(--ok); }
+
+  /* ── Conditions list ── */
+  .conditions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .cond {
+    display: flex;
+    gap: 0.6rem;
+    align-items: baseline;
+    font-size: 0.88rem;
+    color: var(--ink-2);
+  }
+  .cond-num {
+    flex-shrink: 0;
+    width: 1.4em;
+    height: 1.4em;
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cond code {
+    font-family: ui-monospace, monospace;
+    font-size: 0.82rem;
+    background: var(--surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+  }
+
+  p { font-size: 0.92rem; color: var(--ink-2); }
+  strong { color: var(--ink); }
+</style>
+
+<div class="page">
+
+  <header class="header">
+    <div class="eyebrow">AyDA · Clase 3</div>
+    <h1>Análisis Amortizado</h1>
+    <p class="subtitle">Distribuir el costo de operaciones caras sobre las baratas para obtener una cota más realista.</p>
+  </header>
+
+  <!-- Concepto -->
+  <section class="section">
+    <h2>¿Por qué existe?</h2>
+    <div class="idea">
+      <strong>El problema:</strong> algunas estructuras tienen operaciones que cuestan O(n) en el peor caso, pero ese caso ocurre raramente. El análisis por caso peor operación a operación es pesimista. El análisis amortizado calcula el <strong>costo promedio por operación sobre una secuencia de n operaciones</strong>, garantizado — no probabilístico.
+    </div>
+    <div class="formula">
+      <span class="dim">costo amortizado por op =</span>  T(n) / n<br>
+      <span class="dim">donde T(n) = costo total real de n operaciones</span><br><br>
+      <span class="dim">si T(n) = O(n)  →  cada op cuesta</span>  <span class="ok">O(1) amortizado</span>
+    </div>
+  </section>
+
+  <!-- Los 3 métodos -->
+  <section class="section">
+    <h2>Los 3 métodos</h2>
+    <div class="methods">
+      <div class="method-card">
+        <h3>Agregado</h3>
+        <p>Calcular el costo total <code>T(n)</code> exacto para n operaciones y dividir entre n. Sencillo cuando hay una fórmula cerrada.</p>
+      </div>
+      <div class="method-card">
+        <h3>Contador (crédito)</h3>
+        <p>Asignar crédito <code>ĉ_i</code> a cada op. Las baratas guardan crédito; las caras lo gastan. El saldo nunca puede ser negativo.</p>
+      </div>
+      <div class="method-card">
+        <h3>Potencial</h3>
+        <p>Definir función <code>Φ</code> sobre el estado de la estructura. El crédito es el cambio en Φ. Más general y formal que el contador.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Método del potencial -->
+  <section class="section">
+    <h2>Método del Potencial — Fórmula</h2>
+    <div class="formula">
+      <span class="hi">ĉ_i</span>  =  c_i  +  <span class="hi">ΔΦ</span><br>
+      <span class="dim">     =  c_i  +  Φ(D_i) − Φ(D_{i−1})</span><br><br>
+      <span class="dim">Sumando sobre n operaciones:</span><br>
+      Σ ĉ_i  =  Σ c_i  +  Φ(D_n) − Φ(D_0)<br><br>
+      <span class="dim">Como Φ(D_0) = 0 y Φ(D_i) ≥ 0 siempre:</span><br>
+      Σ c_i  <span class="ok">≤</span>  Σ ĉ_i     <span class="dim">← el amortizado es cota superior del real</span>
+    </div>
+    <div class="conditions">
+      <div class="cond"><div class="cond-num">1</div><span><code>Φ(D_0) = 0</code> — la estructura vacía tiene potencial cero</span></div>
+      <div class="cond"><div class="cond-num">2</div><span><code>Φ(D_i) ≥ 0</code> siempre — el potencial nunca puede ser negativo</span></div>
+      <div class="cond"><div class="cond-num">3</div><span><code>ĉ_i</code> constante — eso es lo que queremos demostrar</span></div>
+    </div>
+  </section>
+
+  <!-- Ejemplo 1: Contador binario -->
+  <section class="section">
+    <h2>Ejemplo 1 — Contador Binario (+1)</h2>
+    <div class="example">
+      <div class="example-header">
+        <span class="example-tag">Potencial</span>
+        <h3>Φ = número de bits en 1</h3>
+      </div>
+      <div class="example-body">
+        <p>Sumar 1 a un contador binario de b bits. Si el número termina en <strong>k</strong> unos, hay que voltear k+1 bits: los k unos se ponen a 0 y un cero se pone a 1.</p>
+        <div class="formula">
+c_i  =  k + 1            <span class="dim">(voltear k unos → 0, y un cero → 1)</span><br>
+ΔΦ   =  1 − k            <span class="dim">(ganamos 1 uno, perdemos k unos)</span><br><br>
+<span class="hi">ĉ_i</span>  =  (k+1) + (1−k)  =  <span class="ok">2</span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>paso</th><th>bits</th><th>k</th><th>c_i</th><th>Φ antes</th><th>Φ después</th><th>ΔΦ</th><th>ĉ_i</th>
+            </tr></thead>
+            <tbody>
+              <tr><td>1</td><td>0001</td><td>0</td><td>1</td><td>0</td><td>1</td><td class="cell-hi">+1</td><td class="cell-ok">2</td></tr>
+              <tr><td>2</td><td>0010</td><td>1</td><td>2</td><td>1</td><td>1</td><td>0</td><td class="cell-ok">2</td></tr>
+              <tr><td>3</td><td>0011</td><td>0</td><td>1</td><td>1</td><td>2</td><td class="cell-hi">+1</td><td class="cell-ok">2</td></tr>
+              <tr><td>4</td><td>0100</td><td>2</td><td>3</td><td>2</td><td>1</td><td class="cell-neg">−1</td><td class="cell-ok">2</td></tr>
+              <tr><td>5</td><td>0101</td><td>0</td><td>1</td><td>1</td><td>2</td><td class="cell-hi">+1</td><td class="cell-ok">2</td></tr>
+              <tr><td>6</td><td>0110</td><td>1</td><td>2</td><td>2</td><td>2</td><td>0</td><td class="cell-ok">2</td></tr>
+              <tr><td>7</td><td>0111</td><td>0</td><td>1</td><td>2</td><td>3</td><td class="cell-hi">+1</td><td class="cell-ok">2</td></tr>
+              <tr><td>8</td><td>1000</td><td>3</td><td>4</td><td>3</td><td>1</td><td class="cell-neg">−2</td><td class="cell-ok">2</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="insight">
+          <strong>Clave:</strong> Φ varía mucho (sube, baja, varía). Eso es normal y esperado. Lo que importa es que <strong>ĉ_i = 2 siempre</strong>. Cuando la op es cara (k grande, c_i grande), ΔΦ es muy negativo y lo cancela exactamente.
+        </div>
+        <div class="result">✓ O(1) amortizado por incremento</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ejemplo 2: Array dinámico -->
+  <section class="section">
+    <h2>Ejemplo 2 — Array Dinámico (resize)</h2>
+    <div class="example">
+      <div class="example-header">
+        <span class="example-tag">Potencial</span>
+        <h3>Φ = 2n − cap</h3>
+      </div>
+      <div class="example-body">
+        <p>Insertar en un vector que dobla su capacidad cuando está lleno. Si hay <strong>n</strong> elementos y <strong>cap</strong> de capacidad:</p>
+        <div class="formula">
+<span class="dim">Inserción barata  (n &lt; cap):</span><br>
+  c_i = 1,   ΔΦ = 2(n+1)−cap − (2n−cap) = <span class="hi">+2</span><br>
+  <span class="hi">ĉ_i</span> = 1 + 2 = <span class="ok">3</span><br><br>
+<span class="dim">Inserción cara    (n = cap, resize → cap×2):</span><br>
+  c_i = n+1,   Φ_antes = 2n−n = n,   Φ_después = 2(n+1)−2n = 2<br>
+  ΔΦ  = 2 − n<br>
+  <span class="hi">ĉ_i</span> = (n+1) + (2−n) = <span class="ok">3</span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>insert</th><th>n</th><th>cap</th><th>resize?</th><th>c_i</th><th>Φ antes</th><th>Φ después</th><th>ΔΦ</th><th>ĉ_i</th>
+            </tr></thead>
+            <tbody>
+              <tr><td>1</td><td>1</td><td>1</td><td class="cell-hi">sí</td><td>1</td><td>0</td><td>1</td><td class="cell-hi">+1</td><td class="cell-ok">2</td></tr>
+              <tr><td>2</td><td>2</td><td>2</td><td class="cell-hi">sí</td><td>2</td><td>1</td><td>2</td><td class="cell-hi">+1</td><td class="cell-ok">3</td></tr>
+              <tr><td>3</td><td>3</td><td>4</td><td class="cell-hi">sí</td><td>3</td><td>2</td><td>2</td><td>0</td><td class="cell-ok">3</td></tr>
+              <tr><td>4</td><td>4</td><td>4</td><td>—</td><td>1</td><td>2</td><td>4</td><td class="cell-hi">+2</td><td class="cell-ok">3</td></tr>
+              <tr><td>5</td><td>5</td><td>8</td><td class="cell-hi">sí</td><td>5</td><td>4</td><td>2</td><td class="cell-neg">−2</td><td class="cell-ok">3</td></tr>
+              <tr><td>6</td><td>6</td><td>8</td><td>—</td><td>1</td><td>2</td><td>4</td><td class="cell-hi">+2</td><td class="cell-ok">3</td></tr>
+              <tr><td>7</td><td>7</td><td>8</td><td>—</td><td>1</td><td>4</td><td>6</td><td class="cell-hi">+2</td><td class="cell-ok">3</td></tr>
+              <tr><td>8</td><td>8</td><td>8</td><td>—</td><td>1</td><td>6</td><td>8</td><td class="cell-hi">+2</td><td class="cell-ok">3</td></tr>
+              <tr><td>9</td><td>9</td><td>16</td><td class="cell-hi">sí</td><td>9</td><td>8</td><td>2</td><td class="cell-neg">−6</td><td class="cell-ok">3</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="insight">
+          <strong>Intuición:</strong> entre un resize y el siguiente hay ~n inserciones baratas. Cada una deposita <strong>2 de potencial</strong>, acumulando ~2n. Cuando llega el resize caro (costo ~n), el potencial acumulado paga la mitad adicional. Por eso el factor es 2 y no 1.
+        </div>
+        <div class="result">✓ O(1) amortizado por inserción</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Resumen -->
+  <section class="section">
+    <h2>Reglas para diseñar una buena Φ</h2>
+    <div class="formula">
+1.  Φ(D_0) = 0   y   Φ ≥ 0   siempre   <span class="dim">← obligatorio para que el bound sea válido</span><br>
+2.  Φ sube poco en ops baratas            <span class="dim">← acumula crédito</span><br>
+3.  Φ cae mucho en ops caras              <span class="dim">← libera crédito para pagar</span><br>
+4.  c_i + ΔΦ = <span class="ok">constante</span>             <span class="dim">← eso es lo que queremos demostrar</span><br><br>
+<span class="dim">Regla práctica: si la op cara cuesta f(n), Φ debe acumular ~f(n)/ops_baratas por inserción.</span><br>
+<span class="dim">Binario: f(k)=k, ops_baratas≈k → acumular 1/op.   Array: f(n)=n, ops≈n/2 → acumular 2/op.</span>
+    </div>
+  </section>
+
+</div>

@@ -1,0 +1,1330 @@
+<meta charset="utf-8">
+<title>Graph Viewer — AyDA</title>
+<style>
+/* ══════════════════════════════════════════════════════════════
+   TOKENS
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  --ground:     #eef1f6;
+  --panel:      #ffffff;
+  --panel-2:    #f6f8fb;
+  --border:     #d3dae6;
+  --border-2:   #e4e9f1;
+  --ink:        #16202e;
+  --ink-2:      #4a5b72;
+  --ink-3:      #8797ac;
+
+  --accent:     #b45309;   /* amber — selection / active */
+  --accent-ink: #ffffff;
+  --accent-soft:#fdf0dc;
+
+  --node-fill:  #ffffff;
+  --node-ring:  #35608f;
+  --node-ink:   #16202e;
+  --edge:       #93a5bd;
+  --edge-ink:   #5b6d86;
+  --grid:       #dde3ec;
+
+  --danger:     #b3261e;
+  --shadow:     0 1px 2px rgba(20,32,48,.10), 0 8px 24px rgba(20,32,48,.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground:     #0d131c;
+    --panel:      #151d29;
+    --panel-2:    #1b2532;
+    --border:     #2a3746;
+    --border-2:   #222e3c;
+    --ink:        #dfe7f2;
+    --ink-2:      #94a6bd;
+    --ink-3:      #62748c;
+
+    --accent:     #f0a232;
+    --accent-ink: #1a1204;
+    --accent-soft:#2e2210;
+
+    --node-fill:  #1d2836;
+    --node-ring:  #5b9dd9;
+    --node-ink:   #e6eef8;
+    --edge:       #46586e;
+    --edge-ink:   #8b9db4;
+    --grid:       #18212d;
+
+    --danger:     #e5695f;
+    --shadow:     0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  }
+}
+
+:root[data-theme="light"] {
+  --ground:#eef1f6; --panel:#ffffff; --panel-2:#f6f8fb;
+  --border:#d3dae6; --border-2:#e4e9f1;
+  --ink:#16202e; --ink-2:#4a5b72; --ink-3:#8797ac;
+  --accent:#b45309; --accent-ink:#ffffff; --accent-soft:#fdf0dc;
+  --node-fill:#ffffff; --node-ring:#35608f; --node-ink:#16202e;
+  --edge:#93a5bd; --edge-ink:#5b6d86; --grid:#dde3ec;
+  --danger:#b3261e;
+  --shadow:0 1px 2px rgba(20,32,48,.10), 0 8px 24px rgba(20,32,48,.08);
+}
+:root[data-theme="dark"] {
+  --ground:#0d131c; --panel:#151d29; --panel-2:#1b2532;
+  --border:#2a3746; --border-2:#222e3c;
+  --ink:#dfe7f2; --ink-2:#94a6bd; --ink-3:#62748c;
+  --accent:#f0a232; --accent-ink:#1a1204; --accent-soft:#2e2210;
+  --node-fill:#1d2836; --node-ring:#5b9dd9; --node-ink:#e6eef8;
+  --edge:#46586e; --edge-ink:#8b9db4; --grid:#18212d;
+  --danger:#e5695f;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100dvh;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TOOLBAR
+   ══════════════════════════════════════════════════════════════ */
+.bar {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .5rem .75rem;
+  flex-wrap: wrap;
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: .45rem;
+  padding-right: .5rem;
+  user-select: none;
+}
+.brand b {
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+.brand span {
+  font-size: .62rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+  margin: 0 .3rem;
+}
+.spring { flex: 1 1 auto; }
+
+button, .filebtn {
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 550;
+  color: var(--ink-2);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: .34rem .6rem;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  transition: background .12s, color .12s, border-color .12s;
+}
+button:hover:not(:disabled), .filebtn:hover {
+  background: var(--border-2);
+  color: var(--ink);
+}
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, .filebtn:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+button.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+button.primary {
+  background: var(--node-ring);
+  border-color: var(--node-ring);
+  color: #fff;
+}
+button.primary:hover:not(:disabled) { filter: brightness(1.12); }
+button.danger { color: var(--danger); }
+button.danger:hover:not(:disabled) {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+kbd {
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: .68em;
+  color: var(--ink-3);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 0 .28em;
+  background: var(--panel);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   STAGE
+   ══════════════════════════════════════════════════════════════ */
+.stage { position: relative; overflow: hidden; }
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: default;
+  touch-action: none;
+}
+canvas.panning { cursor: grabbing; }
+canvas.overnode { cursor: pointer; }
+
+/* ── Inspector ── */
+.inspector {
+  position: absolute;
+  top: .75rem;
+  right: .75rem;
+  width: 232px;
+  max-height: calc(100% - 1.5rem);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.insp-head {
+  padding: .5rem .7rem;
+  border-bottom: 1px solid var(--border-2);
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.insp-body {
+  padding: .6rem .7rem .7rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: .7rem;
+}
+
+.stats { display: flex; gap: .4rem; }
+.stat {
+  flex: 1;
+  background: var(--panel-2);
+  border: 1px solid var(--border-2);
+  border-radius: 5px;
+  padding: .35rem .45rem;
+  text-align: center;
+}
+.stat-k {
+  font-size: .58rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 700;
+}
+.stat-v {
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  line-height: 1.25;
+}
+
+.field { display: flex; flex-direction: column; gap: .25rem; }
+.field label {
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+input[type=text], input[type=number] {
+  font: inherit;
+  font-size: .8rem;
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: .3rem .45rem;
+  width: 100%;
+}
+input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+.adj {
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: .72rem;
+  background: var(--panel-2);
+  border: 1px solid var(--border-2);
+  border-radius: 5px;
+  padding: .4rem .5rem;
+  color: var(--ink-2);
+  max-height: 150px;
+  overflow-y: auto;
+  white-space: pre;
+  overflow-x: auto;
+}
+.empty {
+  color: var(--ink-3);
+  font-size: .76rem;
+  font-style: italic;
+  text-align: center;
+  padding: .6rem 0;
+}
+
+/* ── Drop overlay ── */
+.drop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 2px dashed var(--accent);
+  border-radius: 6px;
+  display: none;
+  place-items: center;
+  font-weight: 600;
+  color: var(--accent);
+  pointer-events: none;
+  z-index: 20;
+}
+.drop.show { display: grid; }
+
+/* ══════════════════════════════════════════════════════════════
+   STATUS
+   ══════════════════════════════════════════════════════════════ */
+.status {
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding: .3rem .75rem;
+  font-size: .72rem;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 26px;
+}
+.status .msg { color: var(--ink-2); }
+.status .msg.warn { color: var(--danger); }
+.status .hint { margin-left: auto; display: flex; gap: .7rem; }
+
+/* ══════════════════════════════════════════════════════════════
+   MODAL
+   ══════════════════════════════════════════════════════════════ */
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(8,14,22,.5);
+  display: none;
+  place-items: center;
+  z-index: 100;
+}
+.scrim.show { display: grid; }
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  box-shadow: var(--shadow);
+  width: min(320px, calc(100vw - 2rem));
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.modal h2 { font-size: .95rem; font-weight: 650; }
+.modal .row { display: flex; gap: .4rem; justify-content: flex-end; }
+
+/* ══════════════════════════════════════════════════════════════
+   HOJA DE AYUDA
+   ══════════════════════════════════════════════════════════════ */
+.sheet {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  width: min(700px, calc(100vw - 2rem));
+  max-height: min(82vh, 660px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sheet > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .65rem .9rem;
+  border-bottom: 1px solid var(--border-2);
+}
+.sheet > header h2 { font-size: .95rem; font-weight: 650; }
+.sheet-body {
+  padding: .9rem;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 1rem 1.5rem;
+  align-content: start;
+}
+.sheet-body section { display: flex; flex-direction: column; gap: .35rem; }
+.sheet-body h3 {
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding-bottom: .25rem;
+  border-bottom: 1px solid var(--border-2);
+}
+.sheet-body dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .25rem .6rem;
+  align-items: baseline;
+}
+.sheet-body dt { text-align: right; white-space: nowrap; }
+.sheet-body dd { color: var(--ink-2); font-size: .78rem; }
+.sheet > footer {
+  border-top: 1px solid var(--border-2);
+  padding: .6rem .9rem;
+  font-size: .74rem;
+  color: var(--ink-3);
+  line-height: 1.6;
+}
+.sheet > footer code {
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: .95em;
+  background: var(--panel-2);
+  border: 1px solid var(--border-2);
+  border-radius: 3px;
+  padding: .05em .32em;
+  color: var(--ink-2);
+}
+.status .hint button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  color: var(--ink-3);
+  text-decoration: underline dotted;
+}
+.status .hint button:hover { background: none; color: var(--accent); }
+</style>
+
+<!-- ══════════════ TOOLBAR ══════════════ -->
+<div class="bar">
+  <div class="brand"><b>Graph</b><span>AyDA</span></div>
+
+  <div class="sep"></div>
+  <button id="bAdd"    title="Agregar nodo (N)">+ Nodo</button>
+  <button id="bLink"   title="Conectar 2 nodos seleccionados (C)" disabled>Conectar</button>
+  <button id="bDel"    class="danger" title="Eliminar selección (Supr)" disabled>Eliminar</button>
+
+  <div class="sep"></div>
+  <button id="bDir"  title="Alternar dirigido / no dirigido">Dirigido</button>
+  <button id="bWgt"  title="Alternar aristas con peso">Con peso</button>
+
+  <div class="sep"></div>
+  <button id="bLay"  title="Auto-organizar (fuerzas)">Layout</button>
+  <button id="bFit"  title="Encuadrar todo (F)">Encuadrar</button>
+
+  <div class="spring"></div>
+
+  <label class="filebtn" title="Cargar un .json generado por C++">
+    Importar<input id="fIn" type="file" accept=".json,application/json" hidden>
+  </label>
+  <button id="bOut" title="Descargar el grafo como .json">Exportar</button>
+  <button id="bClr" title="Vaciar el grafo">Limpiar</button>
+  <div class="sep"></div>
+  <button id="bHelp" title="Atajos y acciones (?)">? Ayuda</button>
+  <button id="bThm" title="Alternar tema">Tema</button>
+</div>
+
+<!-- ══════════════ STAGE ══════════════ -->
+<div class="stage" id="stage">
+  <canvas id="cv"></canvas>
+
+  <aside class="inspector">
+    <div class="insp-head"><span>Inspector</span><span id="mode">no dirigido</span></div>
+    <div class="insp-body">
+      <div class="stats">
+        <div class="stat"><div class="stat-k">|V|</div><div class="stat-v" id="sV">0</div></div>
+        <div class="stat"><div class="stat-k">|E|</div><div class="stat-v" id="sE">0</div></div>
+        <div class="stat"><div class="stat-k">Sel</div><div class="stat-v" id="sS">0</div></div>
+      </div>
+      <div id="detail"><p class="empty">Ningún nodo seleccionado</p></div>
+    </div>
+  </aside>
+
+  <div class="drop" id="drop">Suelta el .json aquí</div>
+</div>
+
+<!-- ══════════════ STATUS ══════════════ -->
+<div class="status">
+  <span class="msg" id="msg">Listo.</span>
+  <span class="hint">
+    <span><kbd>N</kbd> nodo</span>
+    <span><kbd>C</kbd> conectar</span>
+    <span><kbd>Supr</kbd> borrar</span>
+    <button id="bHelp2"><kbd>?</kbd> todos los atajos</button>
+  </span>
+</div>
+
+<!-- ══════════════ AYUDA ══════════════ -->
+<div class="scrim" id="helpScrim">
+  <div class="sheet">
+    <header>
+      <h2>Atajos y acciones</h2>
+      <button id="helpX" title="Cerrar (Esc)">Cerrar</button>
+    </header>
+
+    <div class="sheet-body">
+      <section>
+        <h3>Navegación</h3>
+        <dl>
+          <dt><kbd>rueda</kbd></dt>          <dd>Zoom anclado al cursor</dd>
+          <dt><kbd>arrastrar fondo</kbd></dt><dd>Desplazar la vista</dd>
+          <dt><kbd>F</kbd></dt>              <dd>Encuadrar todo el grafo</dd>
+        </dl>
+      </section>
+
+      <section>
+        <h3>Selección</h3>
+        <dl>
+          <dt><kbd>clic</kbd></dt>                     <dd>Seleccionar un nodo</dd>
+          <dt><kbd>Shift</kbd>+<kbd>clic</kbd></dt>    <dd>Añadir o quitar de la selección</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>A</kbd></dt>        <dd>Seleccionar todos</dd>
+          <dt><kbd>Esc</kbd></dt>                      <dd>Deseleccionar</dd>
+        </dl>
+      </section>
+
+      <section>
+        <h3>Edición</h3>
+        <dl>
+          <dt><kbd>N</kbd></dt>                    <dd>Nodo nuevo; pide la etiqueta</dd>
+          <dt><kbd>C</kbd></dt>                    <dd>Conectar los 2 nodos seleccionados</dd>
+          <dt><kbd>Supr</kbd></dt>                 <dd>Eliminar la selección y sus aristas</dd>
+          <dt><kbd>doble clic</kbd></dt>           <dd>Renombrar el nodo</dd>
+          <dt><kbd>arrastrar nodo</kbd></dt>       <dd>Moverlo; queda fijo y el layout ya no lo empuja</dd>
+        </dl>
+      </section>
+
+      <section>
+        <h3>Modos</h3>
+        <dl>
+          <dt><kbd>Dirigido</kbd></dt><dd>Dibuja flechas. Si existen A→B y B→A, se curvan para no solaparse</dd>
+          <dt><kbd>Con peso</kbd></dt><dd>Pide el peso al conectar y lo muestra sobre la arista</dd>
+          <dt><kbd>Layout</kbd></dt>  <dd>Acomoda por fuerzas y se detiene al converger</dd>
+        </dl>
+      </section>
+
+      <section>
+        <h3>Archivo</h3>
+        <dl>
+          <dt><kbd>Importar</kbd></dt><dd>Carga un <code>.json</code>, o arrástralo sobre el lienzo</dd>
+          <dt><kbd>Exportar</kbd></dt><dd>Descarga <code>graph.json</code> con las posiciones actuales</dd>
+          <dt><kbd>Limpiar</kbd></dt> <dd>Vacía el grafo</dd>
+        </dl>
+      </section>
+
+      <section>
+        <h3>Inspector</h3>
+        <dl>
+          <dt><kbd>|V| |E|</kbd></dt>  <dd>Cuenta de nodos y aristas</dd>
+          <dt><kbd>Sel</kbd></dt>      <dd>Cuántos nodos hay seleccionados</dd>
+          <dt><kbd>1 nodo</kbd></dt>   <dd>Su etiqueta editable y su lista de adyacencia; en dirigido separa salientes de entrantes</dd>
+        </dl>
+      </section>
+    </div>
+
+    <footer>
+      Desde C++: <code>gviz::show(grafo, label)</code> genera <code>output.html</code> y lo abre.
+      El número tenue dentro de cada círculo es el <code>id</code>, que corresponde al índice en <code>adj[]</code>.
+    </footer>
+  </div>
+</div>
+
+<!-- ══════════════ MODAL ══════════════ -->
+<div class="scrim" id="scrim">
+  <form class="modal" id="modal">
+    <h2 id="mTitle">Título</h2>
+    <div class="field">
+      <label id="mLabel" for="mInput">Valor</label>
+      <input id="mInput" type="text" autocomplete="off">
+    </div>
+    <div class="row">
+      <button type="button" id="mNo">Cancelar</button>
+      <button type="submit" class="primary" id="mYes">Aceptar</button>
+    </div>
+  </form>
+</div>
+
+<script>
+"use strict";
+
+/* ══════════════════════════════════════════════════════════════
+   FORMATO JSON  (el mismo que producirá tu C++)
+
+   {
+     "directed": false,
+     "weighted": false,
+     "nodes": [ { "id":0, "label":"A", "x":0, "y":0 } ],
+     "edges": [ { "from":0, "to":1, "weight":1 } ]
+   }
+
+   x / y son opcionales: si faltan, el viewer coloca los nodos
+   en círculo y puedes pulsar "Layout" para acomodarlos.
+   ══════════════════════════════════════════════════════════════ */
+
+const R = 21;             // radio del nodo (unidades de mundo)
+const cv  = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+
+const G = {
+  directed: false,
+  weighted: false,
+  nodes: [],              // {id, label, x, y, vx, vy}
+  edges: [],              // {from, to, weight}
+  nextId: 0,
+};
+
+const sel  = [];          // ids seleccionados, en orden de clic
+const view = { x: 0, y: 0, k: 1 };
+let layoutOn = false;
+let hoverId  = null;
+
+/* ── helpers ───────────────────────────────────────────────── */
+const byId  = id => G.nodes.find(n => n.id === id);
+const toWX  = sx => (sx - view.x) / view.k;
+const toWY  = sy => (sy - view.y) / view.k;
+
+/* las etiquetas vienen de un .json externo: hay que escaparlas
+   antes de meterlas en el innerHTML del inspector */
+const esc = s => String(s).replace(/[&<>"]/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function say(text, warn = false) {
+  const el = document.getElementById("msg");
+  el.textContent = text;
+  el.classList.toggle("warn", warn);
+}
+
+/* ── canvas sizing (HiDPI) ─────────────────────────────────── */
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  const r = cv.getBoundingClientRect();
+  cv.width  = Math.round(r.width  * dpr);
+  cv.height = Math.round(r.height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+new ResizeObserver(resize).observe(cv);
+
+/* ══════════════════════════════════════════════════════════════
+   RENDER
+   ══════════════════════════════════════════════════════════════ */
+/* Los colores salen de las CSS custom properties, pero leerlas con
+   getComputedStyle en cada frame es caro: las cacheamos y sólo
+   invalidamos la caché cuando cambia el tema. */
+let palette = {};
+function repaintPalette() {
+  const s = getComputedStyle(document.documentElement);
+  palette = {};
+  for (const v of ["--ground", "--panel", "--border", "--grid", "--accent",
+                   "--accent-soft", "--node-fill", "--node-ring", "--node-ink",
+                   "--edge", "--edge-ink", "--ink-3"])
+    palette[v] = s.getPropertyValue(v).trim();
+}
+const css = v => palette[v];
+repaintPalette();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", repaintPalette);
+
+function draw() {
+  const W = cv.clientWidth, H = cv.clientHeight;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = css("--ground");
+  ctx.fillRect(0, 0, W, H);
+
+  drawGrid(W, H);
+
+  ctx.save();
+  ctx.translate(view.x, view.y);
+  ctx.scale(view.k, view.k);
+
+  G.edges.forEach(drawEdge);
+  G.nodes.forEach(drawNode);
+
+  ctx.restore();
+}
+
+function drawGrid(W, H) {
+  const step = 64 * view.k;
+  if (step < 14) return;
+  ctx.strokeStyle = css("--grid");
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = view.x % step; x < W; x += step) { ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, H); }
+  for (let y = view.y % step; y < H; y += step) { ctx.moveTo(0, y + .5); ctx.lineTo(W, y + .5); }
+  ctx.stroke();
+}
+
+/* Un arco se curva si existe también el opuesto (para que no se solapen). */
+function hasReverse(e) {
+  return G.directed && G.edges.some(o => o.from === e.to && o.to === e.from);
+}
+
+function drawEdge(e) {
+  const a = byId(e.from), b = byId(e.to);
+  if (!a || !b) return;
+
+  const isSel = sel.includes(e.from) && sel.includes(e.to);
+  ctx.strokeStyle = isSel ? css("--accent") : css("--edge");
+  ctx.lineWidth   = isSel ? 2.4 : 1.7;
+
+  if (a === b) { drawLoop(a, e); return; }
+
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len, uy = dy / len;
+
+  // punto de control para el arco curvo
+  const bow = hasReverse(e) ? Math.min(38, len * .22) : 0;
+  const cx = (a.x + b.x) / 2 - uy * bow;
+  const cy = (a.y + b.y) / 2 + ux * bow;
+
+  // recortamos en el borde de cada círculo
+  const p0 = trim(a, cx, cy), p1 = trim(b, cx, cy);
+
+  ctx.beginPath();
+  ctx.moveTo(p0.x, p0.y);
+  bow ? ctx.quadraticCurveTo(cx, cy, p1.x, p1.y) : ctx.lineTo(p1.x, p1.y);
+  ctx.stroke();
+
+  if (G.directed) arrow(p1.x, p1.y, Math.atan2(p1.y - (bow ? cy : a.y), p1.x - (bow ? cx : a.x)), ctx.strokeStyle);
+  if (G.weighted) chip(bow ? qpoint(p0, {x: cx, y: cy}, p1, .5) : mid(p0, p1), String(e.weight ?? 1), isSel);
+}
+
+/* punto del borde del círculo de `n` en dirección a (tx,ty) */
+function trim(n, tx, ty) {
+  const dx = tx - n.x, dy = ty - n.y;
+  const d = Math.hypot(dx, dy) || 1;
+  return { x: n.x + dx / d * R, y: n.y + dy / d * R };
+}
+const mid    = (p, q) => ({ x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 });
+const qpoint = (p0, c, p1, t) => ({
+  x: (1-t)*(1-t)*p0.x + 2*(1-t)*t*c.x + t*t*p1.x,
+  y: (1-t)*(1-t)*p0.y + 2*(1-t)*t*c.y + t*t*p1.y,
+});
+
+function drawLoop(n, e) {
+  ctx.beginPath();
+  ctx.arc(n.x, n.y - R, R * .72, Math.PI * .28, Math.PI * .72, true);
+  ctx.stroke();
+  if (G.directed) arrow(n.x + R * .5, n.y - R * 1.28, Math.PI * .55, ctx.strokeStyle);
+  if (G.weighted) chip({ x: n.x, y: n.y - R * 2.1 }, String(e.weight ?? 1), false);
+}
+
+function arrow(x, y, ang, color) {
+  const s = 9;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(-s, s * .42);
+  ctx.lineTo(-s, -s * .42);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
+}
+
+function chip(p, text, isSel) {
+  ctx.font = "600 11px ui-monospace, 'Cascadia Mono', monospace";
+  const w = ctx.measureText(text).width + 8;
+  ctx.fillStyle = css("--panel");
+  ctx.strokeStyle = isSel ? css("--accent") : css("--border");
+  ctx.lineWidth = 1;
+  const x = p.x - w / 2, y = p.y - 8;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, 16, 4);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = isSel ? css("--accent") : css("--edge-ink");
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, p.x, p.y + .5);
+}
+
+function drawNode(n) {
+  const isSel = sel.includes(n.id);
+  const isHov = hoverId === n.id;
+
+  // halo de selección
+  if (isSel) {
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, R + 5, 0, Math.PI * 2);
+    ctx.fillStyle = css("--accent-soft");
+    ctx.fill();
+  }
+
+  ctx.beginPath();
+  ctx.arc(n.x, n.y, R, 0, Math.PI * 2);
+  ctx.fillStyle   = css("--node-fill");
+  ctx.fill();
+  ctx.strokeStyle = isSel ? css("--accent") : css("--node-ring");
+  ctx.lineWidth   = isSel ? 3 : (isHov ? 2.4 : 1.8);
+  ctx.stroke();
+
+  // índice, tenue, dentro del círculo
+  ctx.font = "600 10px ui-monospace, 'Cascadia Mono', monospace";
+  ctx.fillStyle = css("--ink-3");
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(String(n.id), n.x, n.y);
+
+  // etiqueta debajo
+  if (n.label) {
+    ctx.font = "600 12px ui-sans-serif, system-ui, sans-serif";
+    ctx.fillStyle = isSel ? css("--accent") : css("--node-ink");
+    ctx.fillText(n.label, n.x, n.y + R + 12);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LAYOUT POR FUERZAS  (Fruchterman–Reingold simplificado)
+
+   La "temperatura" es el desplazamiento máximo que se permite por
+   paso, y decae en cada iteración. Sin ese enfriamiento los nodos
+   se pasan del equilibrio, la fuerza los devuelve, se vuelven a
+   pasar, y quedan oscilando para siempre: a 60 fps se ve como una
+   vibración con doble contorno. Al decaer, la oscilación se cierra
+   sobre el punto de equilibrio y el layout converge siempre.
+   ══════════════════════════════════════════════════════════════ */
+let temp = 0;
+
+function startLayout() {
+  temp = 90;                                   // caliente: puede moverse mucho
+  layoutOn = true;
+  G.nodes.forEach(n => n.pinned = false);      // suelta los que se arrastraron
+  sync();
+}
+
+function stopLayout(msg) {
+  layoutOn = false;
+  temp = 0;
+  sync();
+  if (msg) say(msg);
+}
+
+function stepLayout() {
+  const n = G.nodes.length;
+  if (n < 2) { stopLayout(); return; }
+  const k = Math.sqrt((520 * 520) / n);
+
+  for (const a of G.nodes) { a.fx = 0; a.fy = 0; }
+
+  // repulsión entre todos los pares
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const a = G.nodes[i], b = G.nodes[j];
+    let dx = a.x - b.x, dy = a.y - b.y;
+    let d = Math.hypot(dx, dy);
+    if (d < 0.01) { dx = Math.random() - .5; dy = Math.random() - .5; d = 0.01; }
+    const f = (k * k) / d;
+    a.fx += dx / d * f;  a.fy += dy / d * f;
+    b.fx -= dx / d * f;  b.fy -= dy / d * f;
+  }
+
+  // atracción a lo largo de las aristas
+  for (const e of G.edges) {
+    const a = byId(e.from), b = byId(e.to);
+    if (!a || !b || a === b) continue;
+    const dx = a.x - b.x, dy = a.y - b.y;
+    const d = Math.hypot(dx, dy) || .01;
+    const f = (d * d) / k;
+    a.fx -= dx / d * f;  a.fy -= dy / d * f;
+    b.fx += dx / d * f;  b.fy += dy / d * f;
+  }
+
+  // gravedad suave hacia el origen + desplazamiento acotado por la temperatura
+  let move = 0, free = 0;
+  for (const a of G.nodes) {
+    if (a.pinned) continue;
+    ++free;
+    a.fx -= a.x * .012;  a.fy -= a.y * .012;
+    const d = Math.hypot(a.fx, a.fy) || 1;
+    const s = Math.min(d, temp) / d;
+    a.x += a.fx * s;  a.y += a.fy * s;
+    move += Math.hypot(a.fx * s, a.fy * s);
+  }
+
+  temp *= .97;   // enfriamiento -> converge en ~170 frames (unos 3 s)
+
+  // Dos salidas: el enfriamiento (garantizada) o haber dejado de moverse.
+  // Promediamos sobre los nodos libres, no sobre todos: si no, fijar un nodo
+  // arrastrándolo baja el promedio y apaga el layout sin haber convergido.
+  if (temp < .6 || (free && move / free < .25)) {
+    stopLayout("Layout estabilizado.");
+    if (!drag) fit();
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BUCLE
+   ══════════════════════════════════════════════════════════════ */
+function tick() {
+  if (layoutOn) stepLayout();
+  draw();
+  requestAnimationFrame(tick);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   INTERACCIÓN
+   ══════════════════════════════════════════════════════════════ */
+let drag = null;   // {mode:'node'|'pan', id, dx, dy, sx, sy, moved}
+
+function pick(sx, sy) {
+  const wx = toWX(sx), wy = toWY(sy);
+  for (let i = G.nodes.length - 1; i >= 0; i--) {
+    const n = G.nodes[i];
+    if ((n.x - wx) ** 2 + (n.y - wy) ** 2 <= R * R) return n;
+  }
+  return null;
+}
+
+cv.addEventListener("pointerdown", ev => {
+  cv.setPointerCapture(ev.pointerId);
+  const r = cv.getBoundingClientRect();
+  const sx = ev.clientX - r.left, sy = ev.clientY - r.top;
+  const n = pick(sx, sy);
+
+  if (n) {
+    if (ev.shiftKey) {
+      const i = sel.indexOf(n.id);
+      i < 0 ? sel.push(n.id) : sel.splice(i, 1);
+    } else if (!sel.includes(n.id)) {
+      sel.length = 0;
+      sel.push(n.id);
+    }
+    sync();
+    drag = { mode: "node", id: n.id, dx: toWX(sx) - n.x, dy: toWY(sy) - n.y, moved: false };
+  } else {
+    drag = { mode: "pan", sx: sx - view.x, sy: sy - view.y, moved: false, hadSel: sel.length > 0 };
+    cv.classList.add("panning");
+  }
+});
+
+cv.addEventListener("pointermove", ev => {
+  const r = cv.getBoundingClientRect();
+  const sx = ev.clientX - r.left, sy = ev.clientY - r.top;
+
+  if (!drag) {
+    const n = pick(sx, sy);
+    const id = n ? n.id : null;
+    if (id !== hoverId) { hoverId = id; cv.classList.toggle("overnode", !!n); }
+    return;
+  }
+
+  drag.moved = true;
+  if (drag.mode === "node") {
+    const n = byId(drag.id);
+    if (n) { n.x = toWX(sx) - drag.dx; n.y = toWY(sy) - drag.dy; n.pinned = true; }
+  } else {
+    view.x = sx - drag.sx;
+    view.y = sy - drag.sy;
+  }
+});
+
+cv.addEventListener("pointerup", () => {
+  // clic simple en vacío = deseleccionar
+  if (drag && drag.mode === "pan" && !drag.moved && drag.hadSel) { sel.length = 0; sync(); }
+  drag = null;
+  cv.classList.remove("panning");
+});
+
+cv.addEventListener("wheel", ev => {
+  ev.preventDefault();
+  const r = cv.getBoundingClientRect();
+  const sx = ev.clientX - r.left, sy = ev.clientY - r.top;
+  const wx = toWX(sx), wy = toWY(sy);
+  const k = Math.min(4, Math.max(.15, view.k * (ev.deltaY < 0 ? 1.12 : 1 / 1.12)));
+  view.k = k;
+  view.x = sx - wx * k;          // zoom anclado al cursor
+  view.y = sy - wy * k;
+}, { passive: false });
+
+/* doble clic sobre un nodo → renombrar */
+cv.addEventListener("dblclick", async ev => {
+  const r = cv.getBoundingClientRect();
+  const n = pick(ev.clientX - r.left, ev.clientY - r.top);
+  if (!n) return;
+  const v = await ask("Renombrar nodo", "Etiqueta", n.label, "text");
+  if (v !== null) { n.label = v; sync(); }
+});
+
+/* ══════════════════════════════════════════════════════════════
+   OPERACIONES
+   ══════════════════════════════════════════════════════════════ */
+async function addNode() {
+  const label = await ask("Nuevo nodo", "Etiqueta", "", "text");
+  if (label === null) return;
+
+  // lo colocamos en el centro visible, con un pequeño desvío
+  const a = Math.random() * Math.PI * 2, d = Math.random() * 60;
+  const n = {
+    id: G.nextId++,
+    label: label || String(G.nextId - 1),
+    x: toWX(cv.clientWidth / 2) + Math.cos(a) * d,
+    y: toWY(cv.clientHeight / 2) + Math.sin(a) * d,
+  };
+  G.nodes.push(n);
+  sel.length = 0; sel.push(n.id);
+  sync();
+  say(`Nodo ${n.id} agregado.`);
+}
+
+async function link() {
+  if (sel.length !== 2) { say("Selecciona exactamente 2 nodos.", true); return; }
+  const [from, to] = sel;
+
+  const dup = G.edges.some(e =>
+    (e.from === from && e.to === to) ||
+    (!G.directed && e.from === to && e.to === from));
+  if (dup) { say("Esa arista ya existe.", true); return; }
+
+  let w = 1;
+  if (G.weighted) {
+    const v = await ask("Nueva arista", "Peso", "1", "number");
+    if (v === null) return;
+    w = Number(v) || 0;
+  }
+  G.edges.push({ from, to, weight: w });
+  sync();
+  say(`Arista ${from} ${G.directed ? "→" : "—"} ${to} creada.`);
+}
+
+function del() {
+  if (!sel.length) return;
+  const gone = new Set(sel);
+  G.nodes = G.nodes.filter(n => !gone.has(n.id));
+  G.edges = G.edges.filter(e => !gone.has(e.from) && !gone.has(e.to));
+  say(`${gone.size} nodo(s) eliminado(s).`);
+  sel.length = 0;
+  sync();
+}
+
+function fit() {
+  if (!G.nodes.length) { view.x = cv.clientWidth / 2; view.y = cv.clientHeight / 2; view.k = 1; return; }
+  const xs = G.nodes.map(n => n.x), ys = G.nodes.map(n => n.y);
+  const x0 = Math.min(...xs) - R * 2, x1 = Math.max(...xs) + R * 2;
+  const y0 = Math.min(...ys) - R * 2.5, y1 = Math.max(...ys) + R * 2.5;
+  const k = Math.min(4, Math.max(.15,
+    Math.min(cv.clientWidth / (x1 - x0 || 1), cv.clientHeight / (y1 - y0 || 1)) * .9));
+  view.k = k;
+  view.x = cv.clientWidth  / 2 - (x0 + x1) / 2 * k;
+  view.y = cv.clientHeight / 2 - (y0 + y1) / 2 * k;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   JSON I/O
+   ══════════════════════════════════════════════════════════════ */
+function toJSON() {
+  return JSON.stringify({
+    directed: G.directed,
+    weighted: G.weighted,
+    nodes: G.nodes.map(n => ({
+      id: n.id, label: n.label,
+      x: Math.round(n.x), y: Math.round(n.y),
+    })),
+    edges: G.edges.map(e =>
+      G.weighted ? { from: e.from, to: e.to, weight: e.weight }
+                 : { from: e.from, to: e.to }),
+  }, null, 2);
+}
+
+function fromJSON(text) {
+  let d;
+  try { d = JSON.parse(text); }
+  catch { say("JSON inválido.", true); return; }
+  if (!d || !Array.isArray(d.nodes)) { say("Falta el arreglo 'nodes'.", true); return; }
+
+  G.directed = !!d.directed;
+  G.weighted = !!d.weighted;
+
+  const N = d.nodes.length;
+  // Sin posiciones, arrancamos en círculo. El radio se elige para que el
+  // espaciado ya sea cercano al que el layout considera de equilibrio, así
+  // queda poco por mover y la animación inicial no da un salto brusco.
+  const rad = 83 * Math.sqrt(Math.max(1, N));
+  G.nodes = d.nodes.map((n, i) => {
+    const id = Number.isInteger(n.id) ? n.id : i;
+    const ang = (i / Math.max(1, N)) * Math.PI * 2;
+    return {
+      id,
+      label: n.label != null ? String(n.label) : String(id),
+      x: typeof n.x === "number" ? n.x : Math.cos(ang) * rad,
+      y: typeof n.y === "number" ? n.y : Math.sin(ang) * rad,
+    };
+  });
+
+  const ids = new Set(G.nodes.map(n => n.id));
+  G.edges = (d.edges || [])
+    .filter(e => ids.has(e.from) && ids.has(e.to))
+    .map(e => ({ from: e.from, to: e.to, weight: e.weight ?? 1 }));
+
+  G.nextId = G.nodes.length ? Math.max(...G.nodes.map(n => n.id)) + 1 : 0;
+  sel.length = 0;
+
+  const noPos = d.nodes.every(n => typeof n.x !== "number");
+  sync(); fit();
+  if (noPos && G.nodes.length > 2) startLayout();
+  say(`Cargado: ${G.nodes.length} nodos, ${G.edges.length} aristas.`);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   INSPECTOR
+   ══════════════════════════════════════════════════════════════ */
+function sync() {
+  document.getElementById("sV").textContent = G.nodes.length;
+  document.getElementById("sE").textContent = G.edges.length;
+  document.getElementById("sS").textContent = sel.length;
+  document.getElementById("mode").textContent =
+    (G.directed ? "dirigido" : "no dirigido") + (G.weighted ? " · pesado" : "");
+
+  document.getElementById("bDir").classList.toggle("on", G.directed);
+  document.getElementById("bWgt").classList.toggle("on", G.weighted);
+  document.getElementById("bLay").classList.toggle("on", layoutOn);
+  document.getElementById("bLink").disabled = sel.length !== 2;
+  document.getElementById("bDel").disabled  = sel.length === 0;
+
+  const box = document.getElementById("detail");
+  if (sel.length !== 1) {
+    box.innerHTML = `<p class="empty">${
+      sel.length === 0 ? "Ningún nodo seleccionado"
+                       : sel.length + " nodos seleccionados"}</p>`;
+    return;
+  }
+
+  const n = byId(sel[0]);
+  if (!n) return;
+
+  const out = G.edges.filter(e => e.from === n.id).map(e => [e.to, e.weight]);
+  const inc = G.edges.filter(e => e.to === n.id).map(e => [e.from, e.weight]);
+  const fmt = ps => ps.length
+    ? ps.map(([id, w]) => {
+        const t = byId(id);
+        return `  ${String(id).padStart(2)}  ${esc(t ? t.label : "?")}${G.weighted ? `  (${esc(w)})` : ""}`;
+      }).join("\n")
+    : "  ∅";
+
+  const adj = G.directed
+    ? `salientes →\n${fmt(out)}\n\nentrantes ←\n${fmt(inc)}`
+    : `vecinos\n${fmt([...out, ...inc])}`;
+
+  box.innerHTML = `
+    <div class="field">
+      <label for="lbl">Etiqueta · id ${n.id}</label>
+      <input id="lbl" type="text" value="${esc(n.label)}">
+    </div>
+    <div class="field">
+      <label>Grado ${G.directed ? `· out ${out.length} / in ${inc.length}` : `· ${out.length + inc.length}`}</label>
+      <div class="adj">${adj}</div>
+    </div>`;
+
+  document.getElementById("lbl").addEventListener("input", ev => { n.label = ev.target.value; });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MODAL (promesa)
+   ══════════════════════════════════════════════════════════════ */
+let resolveModal = null;
+const scrim = document.getElementById("scrim");
+
+function ask(title, label, value = "", type = "text") {
+  document.getElementById("mTitle").textContent = title;
+  document.getElementById("mLabel").textContent = label;
+  const inp = document.getElementById("mInput");
+  inp.type = type;
+  inp.value = value;
+  scrim.classList.add("show");
+  setTimeout(() => { inp.focus(); inp.select(); }, 0);
+  return new Promise(res => { resolveModal = res; });
+}
+function closeModal(val) {
+  scrim.classList.remove("show");
+  if (resolveModal) { resolveModal(val); resolveModal = null; }
+}
+document.getElementById("modal").addEventListener("submit", ev => {
+  ev.preventDefault();
+  closeModal(document.getElementById("mInput").value);
+});
+document.getElementById("mNo").addEventListener("click", () => closeModal(null));
+scrim.addEventListener("pointerdown", ev => { if (ev.target === scrim) closeModal(null); });
+
+/* ══════════════════════════════════════════════════════════════
+   EVENTOS DE LA BARRA
+   ══════════════════════════════════════════════════════════════ */
+document.getElementById("bAdd").onclick = addNode;
+document.getElementById("bLink").onclick = link;
+document.getElementById("bDel").onclick  = del;
+document.getElementById("bFit").onclick  = fit;
+
+document.getElementById("bDir").onclick = () => {
+  G.directed = !G.directed;
+  if (!G.directed) {   // al volver a no dirigido, colapsamos duplicados A→B / B→A
+    const seen = new Set();
+    G.edges = G.edges.filter(e => {
+      const k = [e.from, e.to].sort((a, b) => a - b).join("-");
+      return seen.has(k) ? false : (seen.add(k), true);
+    });
+  }
+  sync();
+};
+
+document.getElementById("bWgt").onclick = () => {
+  G.weighted = !G.weighted;
+  if (G.weighted) G.edges.forEach(e => { if (e.weight == null) e.weight = 1; });
+  sync();
+};
+
+document.getElementById("bLay").onclick = () => {
+  if (layoutOn) stopLayout("Layout detenido.");
+  else { startLayout(); say("Layout en marcha…"); }
+};
+
+document.getElementById("bClr").onclick = () => {
+  G.nodes = []; G.edges = []; G.nextId = 0; sel.length = 0;
+  sync(); say("Grafo vaciado.");
+};
+
+document.getElementById("bOut").onclick = () => {
+  const blob = new Blob([toJSON()], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "graph.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  say("graph.json exportado.");
+};
+
+document.getElementById("fIn").addEventListener("change", ev => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  f.text().then(fromJSON);
+  ev.target.value = "";
+});
+
+/* ── hoja de ayuda ─────────────────────────────────────────── */
+const helpScrim = document.getElementById("helpScrim");
+const showHelp = on => helpScrim.classList.toggle("show", on);
+
+document.getElementById("bHelp").onclick  = () => showHelp(true);
+document.getElementById("bHelp2").onclick = () => showHelp(true);
+document.getElementById("helpX").onclick  = () => showHelp(false);
+helpScrim.addEventListener("pointerdown", ev => { if (ev.target === helpScrim) showHelp(false); });
+
+document.getElementById("bThm").onclick = () => {
+  const cur = document.documentElement.getAttribute("data-theme");
+  const dark = cur ? cur === "dark"
+                   : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+  repaintPalette();
+};
+
+/* ── drag & drop de un .json sobre el lienzo ───────────────── */
+const stage = document.getElementById("stage"), dropEl = document.getElementById("drop");
+let dragDepth = 0;
+stage.addEventListener("dragenter", ev => { ev.preventDefault(); if (++dragDepth === 1) dropEl.classList.add("show"); });
+stage.addEventListener("dragover",  ev => ev.preventDefault());
+stage.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; dropEl.classList.remove("show"); } });
+stage.addEventListener("drop", ev => {
+  ev.preventDefault();
+  dragDepth = 0; dropEl.classList.remove("show");
+  const f = ev.dataTransfer.files[0];
+  if (f) f.text().then(fromJSON);
+});
+
+/* ── atajos de teclado ─────────────────────────────────────── */
+addEventListener("keydown", ev => {
+  if (scrim.classList.contains("show")) { if (ev.key === "Escape") closeModal(null); return; }
+  if (helpScrim.classList.contains("show")) {
+    if (ev.key === "Escape" || ev.key === "?") { ev.preventDefault(); showHelp(false); }
+    return;
+  }
+  if (/^(INPUT|TEXTAREA)$/.test(ev.target.tagName)) return;
+
+  const k = ev.key.toLowerCase();
+  if (ev.key === "?") { ev.preventDefault(); showHelp(true); }
+  else if (k === "n") { ev.preventDefault(); addNode(); }
+  else if (k === "c") { ev.preventDefault(); link(); }
+  else if (k === "f") { ev.preventDefault(); fit(); }
+  else if (ev.key === "Delete" || ev.key === "Backspace") { ev.preventDefault(); del(); }
+  else if (ev.key === "Escape") { sel.length = 0; sync(); }
+  else if (k === "a" && (ev.ctrlKey || ev.metaKey)) {
+    ev.preventDefault();
+    sel.length = 0;
+    G.nodes.forEach(n => sel.push(n.id));
+    sync();
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+//  ARRANQUE
+//
+//  PUNTO DE INYECCIÓN PARA C++
+//  En la línea de abajo, el `null` va precedido de un comentario
+//  marcador. Para embeber un grafo: lee este archivo como plantilla,
+//  reemplaza esa cadena marcador-más-null por el texto JSON del
+//  grafo, y escribe el resultado como output.html. El viewer
+//  arrancará con tu grafo en vez de con la demo.
+//
+//  Escribe SIEMPRE en un archivo distinto (output.html): si
+//  sobrescribes esta plantilla, pierdes el marcador y el siguiente
+//  reemplazo ya no encuentra nada.
+// ══════════════════════════════════════════════════════════════
+const EMBEDDED = /*GRAPH_DATA*/null;
+
+const DEMO = {
+  directed: false,
+  weighted: false,
+  nodes: [{ id: 0, label: "1" }, { id: 1, label: "2" }, { id: 2, label: "3" },
+          { id: 3, label: "4" }, { id: 4, label: "5" }],
+  edges: [{ from: 0, to: 1 }, { from: 0, to: 2 }, { from: 1, to: 3 },
+          { from: 2, to: 4 }, { from: 3, to: 4 }],
+};
+
+resize();
+fromJSON(JSON.stringify(EMBEDDED ?? DEMO));
+say(EMBEDDED
+  ? `Grafo embebido: ${G.nodes.length} nodos, ${G.edges.length} aristas.`
+  : "Demo cargada — el grafo de LGraph.cpp. Importa un .json o construye el tuyo.");
+tick();
+</script>

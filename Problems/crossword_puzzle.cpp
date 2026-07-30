@@ -134,7 +134,7 @@ struct SpotHash
 {
     ull operator() (const Spot& _spot) const noexcept
     {                     // the number of the cell as a contiguos array
-        return hash<ull>{}(_spot.row*_spot.col + _spot.row);
+        return hash<ull>{}(_spot.row*_spot.col + _spot.col);
     }
 };
 
