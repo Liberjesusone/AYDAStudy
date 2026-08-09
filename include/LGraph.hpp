@@ -166,7 +166,7 @@ class LGraph
 
 
         /** @brief Receives a list where the first element is the value for the next node to insert
-         * and a vector of ull that represents all the indx of
+         * and a vector of ull that represents all the indx of their neighbors
          */
         template <template <typename...> class Collection>
         void insert_by_indx(const Collection<std::pair<T, std::vector<ull>>>& _pairs) noexcept
@@ -262,8 +262,8 @@ class LGraph
                 for (WeakNodePtr weak_neighbor : adj[i]->get_neighbors()) // for every neighbor
                 {
                     NodePtr live = weak_neighbor.lock();
-                    if (live != nullptr && live->get_id() > i) // if the id is smaller than i, it means that we have already
-                        _lambda(i, live->get_id(), 0);         // passed by it 
+                    if (live != nullptr && live->get_id() > i) // if the id is smaller than i or equal, it means  
+                        _lambda(i, live->get_id(), 0);         // that we have already passed by it 
                 }
             }
         }

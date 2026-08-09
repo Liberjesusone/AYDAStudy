@@ -606,6 +606,8 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
    ══════════════════════════════════════════════════════════════ */
 
 const R = 21;             // radio del nodo (unidades de mundo)
+const IDEAL_SPACING = R * 6;   // distancia de reposo entre dos nodos no conectados;
+                                // la comparte el circulo inicial y el layout de fuerzas
 const cv  = document.getElementById("cv");
 const ctx = cv.getContext("2d");
 
@@ -848,19 +850,51 @@ function stopLayout(msg) {
 function stepLayout() {
   const n = G.nodes.length;
   if (n < 2) { stopLayout(); return; }
-  const k = Math.sqrt((520 * 520) / n);
+
+  // k es la distancia de reposo entre dos nodos NO conectados. Antes se
+  // calculaba como sqrt(area_fija / n): un área imaginada constante sin
+  // importar cuántos nodos hubiera, así que k se achicaba con 1/sqrt(n).
+  // Con miles de nodos, k terminaba siendo más chico que el propio
+  // diámetro de un nodo (2*R) — el layout pedía apretarlos más de lo que
+  // su círculo mide, y por eso se compactaban en el centro (el "sol").
+  // Al fijar k como un múltiplo de R, el espacio de reposo entre nodos
+  // sueltos es siempre el mismo sin importar cuántos haya; el área total
+  // que ocupa el grafo crece sola (~n * k²) a medida que crece n.
+  const k = IDEAL_SPACING;
 
   for (const a of G.nodes) { a.fx = 0; a.fy = 0; }
 
-  // repulsión entre todos los pares
-  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
-    const a = G.nodes[i], b = G.nodes[j];
-    let dx = a.x - b.x, dy = a.y - b.y;
-    let d = Math.hypot(dx, dy);
-    if (d < 0.01) { dx = Math.random() - .5; dy = Math.random() - .5; d = 0.01; }
-    const f = (k * k) / d;
-    a.fx += dx / d * f;  a.fy += dy / d * f;
-    b.fx -= dx / d * f;  b.fy -= dy / d * f;
+  // Repulsión: comparar TODOS los pares es O(n²) — a 1300 nodos son ~845 mil
+  // pares por frame, y eso es lo que hacía que el layout tardara ~25s en
+  // asentarse. La repulsión a distancias grandes es despreciable frente al
+  // empaquetado local que de verdad importa evitar, así que en vez de barrer
+  // todos los pares, se bucketizan los nodos en una grilla de celdas ~2k y
+  // cada nodo solo compara contra los que caen en su celda o las 8 vecinas.
+  // Con los nodos ya razonablemente esparcidos, eso es ~O(n) en la práctica.
+  const cellSize = k * 2;
+  const grid = new Map();
+  for (const v of G.nodes) {
+    const key = Math.floor(v.x / cellSize) + "," + Math.floor(v.y / cellSize);
+    let bucket = grid.get(key);
+    if (!bucket) grid.set(key, bucket = []);
+    bucket.push(v);
+  }
+
+  for (const a of G.nodes) {
+    const cx = Math.floor(a.x / cellSize), cy = Math.floor(a.y / cellSize);
+    for (let gx = cx - 1; gx <= cx + 1; gx++)
+      for (let gy = cy - 1; gy <= cy + 1; gy++) {
+        const bucket = grid.get(gx + "," + gy);
+        if (!bucket) continue;
+        for (const b of bucket) {
+          if (b === a) continue;
+          let dx = a.x - b.x, dy = a.y - b.y;
+          let d = Math.hypot(dx, dy);
+          if (d < 0.01) { dx = Math.random() - .5; dy = Math.random() - .5; d = 0.01; }
+          const f = (k * k) / d;
+          a.fx += dx / d * f;  a.fy += dy / d * f;
+        }
+      }
   }
 
   // atracción a lo largo de las aristas
@@ -886,7 +920,53 @@ function stepLayout() {
     move += Math.hypot(a.fx * s, a.fy * s);
   }
 
-  temp *= .97;   // enfriamiento -> converge en ~170 frames (unos 3 s)
+  // Corrección geométrica de solapamiento: aparte de la física de resortes
+  // de arriba, cualquier par que haya quedado a menos de su propio diámetro
+  // se separa a la fuerza a lo largo de la línea que los une. Es intencional
+  // que NO dependa de temp -- hacia el final del enfriamiento, temp baja
+  // mucho para que todo se asiente sin vibrar (ver el comentario de más
+  // arriba), y un par que quede casi encima del otro nunca alcanzaría a
+  // escapar si su corrección estuviera atada a esa misma temperatura que ya
+  // se enfrió. Reusa la grilla de la repulsión, así que no cuesta casi nada.
+  // Ojo con el margen: si minSep fuera mayor al contacto real (2*R), la
+  // correccion pelearia cada frame contra la atraccion de una arista que
+  // asienta a dos nodos conectados justo en esa franja intermedia -- eso
+  // fue lo que causo vibracion residual la primera vez que probe esto con
+  // margen extra. Por eso el umbral es el contacto exacto, ni un poco mas.
+  //
+  // Una sola pasada no desenreda del todo a un grupo de MUCHOS nodos
+  // amontonados a la vez (empujar a A lejos de B puede mandarlo justo
+  // encima de C), pero corre en cada uno de los ~165 frames del layout, así
+  // que lo que una pasada deja a medio resolver, la siguiente lo sigue
+  // acercando -- no hace falta resolverlo todo de una, con que converja.
+  const minSep = 2 * R;
+  for (const a of G.nodes) {
+    if (a.pinned) continue;
+    const cx = Math.floor(a.x / cellSize), cy = Math.floor(a.y / cellSize);
+    for (let gx = cx - 1; gx <= cx + 1; gx++)
+      for (let gy = cy - 1; gy <= cy + 1; gy++) {
+        const bucket = grid.get(gx + "," + gy);
+        if (!bucket) continue;
+        for (const b of bucket) {
+          if (b === a) continue;
+          let dx = a.x - b.x, dy = a.y - b.y;
+          let d = Math.hypot(dx, dy);
+          if (d >= minSep) continue;
+          if (d < 0.01) { dx = Math.random() - .5; dy = Math.random() - .5; d = 0.01; }
+          const push = (minSep - d) * 0.5;
+          a.x += dx / d * push;  a.y += dy / d * push;
+        }
+      }
+  }
+
+  // El enfriamiento decide cuantos frames dura el layout. No hace falta que
+  // este numero crezca con n: deshacer el solapamiento ya no depende de la
+  // simulacion de resortes (eso lo garantiza la correccion geometrica de
+  // arriba, en cualquier frame), asi que este presupuesto fijo solo tiene
+  // que alcanzar para que el grafo encuentre una forma agradable, y eso no
+  // pide mas tiempo con miles de nodos que con diez.
+  const framesTarget = 165;
+  temp *= Math.exp(Math.log(0.6 / 90) / framesTarget);
 
   // Dos salidas: el enfriamiento (garantizada) o haber dejado de moverse.
   // Promediamos sobre los nodos libres, no sobre todos: si no, fijar un nodo
@@ -1080,18 +1160,34 @@ function fromJSON(text) {
   G.weighted = !!d.weighted;
 
   const N = d.nodes.length;
-  // Sin posiciones, arrancamos en círculo. El radio se elige para que el
-  // espaciado ya sea cercano al que el layout considera de equilibrio, así
-  // queda poco por mover y la animación inicial no da un salto brusco.
+  // Sin posiciones, arrancamos en un disco, no en un anillo. El radio
+  // exterior ∝ √N es la escala correcta para la forma final (un disco
+  // lleno, área ∝ n → radio ∝ √n) — el problema real era poner los N
+  // nodos sobre el BORDE de ese círculo, todos a la misma distancia del
+  // centro: un anillo de ese radio es angosto para muchos nodos (mismo
+  // problema de siempre, en 1D), y quedaban tan amontonados en el arranque
+  // que ni la correción geométrica ni el resto de los frames disponibles
+  // alcanzaban a esparcirlos — se veían como una circunferencia gigante.
+  //
+  // La solución es reparir los N nodos por toda el ÁREA del disco desde
+  // el arranque, no solo su borde, con el patrón de semillas de girasol
+  // (phyllotaxis): cada nodo i va al radio r_i = R*sqrt(i/N) (la raíz es
+  // la que reparte el área con densidad pareja, no el radio en sí) y al
+  // ángulo i*ángulo_dorado (el ángulo dorado evita que radios sucesivos
+  // queden alineados, que es lo que forma los "rayos" característicos de
+  // un girasol real). El resultado ya se parece a la forma de equilibrio,
+  // así que a la simulación le queda mucho menos por resolver.
   const rad = 83 * Math.sqrt(Math.max(1, N));
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
   G.nodes = d.nodes.map((n, i) => {
     const id = Number.isInteger(n.id) ? n.id : i;
-    const ang = (i / Math.max(1, N)) * Math.PI * 2;
+    const r = rad * Math.sqrt((i + 0.5) / Math.max(1, N));
+    const ang = i * goldenAngle;
     return {
       id,
       label: n.label != null ? String(n.label) : String(id),
-      x: typeof n.x === "number" ? n.x : Math.cos(ang) * rad,
-      y: typeof n.y === "number" ? n.y : Math.sin(ang) * rad,
+      x: typeof n.x === "number" ? n.x : Math.cos(ang) * r,
+      y: typeof n.y === "number" ? n.y : Math.sin(ang) * r,
     };
   });
 

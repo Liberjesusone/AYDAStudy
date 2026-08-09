@@ -128,34 +128,46 @@ class Json
 };
 
 
-/** @brief Convierte un grafo cualquiera en el JSON que entiende el viewer.
+/** @brief Converts any graph into the JSON the viewer understands.
  *
- * La idea es que esta función no sepa nada de cómo está hecho el grafo: sólo
- * le pide un recorrido y una forma de etiquetar. Así sirve igual para LGraph,
- * para el dirigido que hagas después, o para cualquier otro que exponga el
- * mismo recorrido.
+ * This function knows nothing about how the graph is actually built: it only
+ * asks for a traversal and a way to label each node. That is why it works the
+ * same for LGraph, the directed graph, or for any other class that exposes 
+ * the same two methods.
  *
- * @param _graph  el grafo. Debe ofrecer un recorrido que visite TODOS los
- *                nodos (recorrer adj[] directamente, no un BFS desde adj[0]:
- *                un BFS se salta las componentes desconectadas) y que le pase
- *                al lambda el índice del nodo, su valor y sus vecinos.
+ * ── THE CONTRACT ──
  *
- * @param _label  lambda que recibe el valor del nodo y devuelve el string que
- *                se dibuja debajo del círculo. Ej. para un grafo de usuarios:
+ * Any graph class you want to visualize must expose:
+ *
+ *   graph.for_each(functor)
+ *       Calls functor(node) once for EVERY node in the graph — not just the
+ *       ones connected, also the nodes that doesn't have a connexion
+ *
+ *   graph.for_each_edge(functor)
+ *       Calls functor(from_id, to_id, weight) once per LOGICAL edge. This is
+ *       also where directed vs. undirected is decided: an undirected graph
+ *       must filter so each edge is reported once, not once per endpoint
+ *       (LGraph does this with a `neighbor_id > i` check, since an edge is
+ *       only found from the endpoint with the smaller id); a directed graph
+ *       reports every entry as-is, since a->b and b->a are genuinely two
+ *       different edges. to_json() itself has no opinion on this — it just
+ *       relays whatever for_each_edge decides to hand it.
+ *
+ * And any node class returned by for_each must expose:
+ *
+ *   node.get_id()     -> an unsigned integer, unique per node. This becomes
+ *                        the JSON "id" and what edges reference; the natural
+ *                        choice is the node's index in adj[].
+ *   node.get_value()  -> the value stored in the node (by reference or by
+ *                        value), which gets passed into _label().
+ *
+ * @param _graph  the graph, satisfying the contract above.
+ *
+ * @param _label  lambda that receives the node's value and returns the string
+ *                drawn under its circle. E.g. for a graph of users:
  *                    [](const User& u) { return u.get_name().substr(0, 14); }
  *
- * Dos cosas a resolver dentro:
- *
- *   - Los nodos van primero: una arista que apunte a un id que todavía no
- *     existe la descarta el viewer. Recorre agregando nodos, y en la misma
- *     pasada (o en otra) agrega las aristas.
- *
- *   - Si el grafo NO es dirigido, cada arista aparece dos veces en las listas
- *     de adyacencia (una desde cada extremo). Si las agregas las dos, el
- *     viewer dibuja dos líneas encimadas. Piensa qué condición sencilla sobre
- *     los dos índices deja pasar sólo una de las dos.
- *
- * @returns el texto JSON (usa Json::str() al final)
+ * @returns the JSON text (built with Json::str())
  */
 template <class Graph, class LabelFn>
 std::string to_json(const Graph& _graph, LabelFn _label,
@@ -163,15 +175,17 @@ std::string to_json(const Graph& _graph, LabelFn _label,
 {
     Json json;
 
-    // 1. We have to add all nodes (id, name)
-    auto add_node = [&json, &_label](const auto& _node) -> void 
+    // 1. Nodes go first: the viewer discards any edge pointing at an id it
+    //    hasn't seen as a node yet.
+    auto add_node = [&json, &_label](const auto& _node) -> void
     {
         json.add_node(_node.get_id(), _label(_node.get_value()));
     };
     _graph.for_each(add_node);
 
-    // 2. We add all the edges 
-    auto add_edge = [&json, &_label](ull _from, ull _to, ll _weight) -> void 
+    // 2. Edges. Deduplication (or lack of it, for directed graphs) already
+    //    happened inside for_each_edge, so we just forward what it gives us.
+    auto add_edge = [&json](ull _from, ull _to, ll _weight) -> void
     {
         json.add_edge(_from, _to, _weight);
     };
